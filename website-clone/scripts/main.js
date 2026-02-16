@@ -217,7 +217,7 @@
   });
 
   // ——— App: hash routing ———
-  const APP_ROUTES = ['feed', 'experience', 'book', 'vibe'];
+  const APP_ROUTES = ['feed', 'experience', 'book', 'vibe', 'register', 'signin'];
 
   function getRoute() {
     const hash = (window.location.hash || '#/feed').slice(1);
@@ -252,10 +252,19 @@
     const screenEl = document.getElementById('screen-' + screen);
     if (screenEl) screenEl.hidden = false;
 
+    // Hide/show bottom nav
+    const bottomNav = document.querySelector('.app-bottom-nav');
+    if (bottomNav) {
+      bottomNav.hidden = (screen === 'register' || screen === 'signin');
+    }
+
     if (appBack) {
       if (screen === 'feed' || screen === 'vibe') {
         appBack.hidden = true;
         appBack.href = '#';
+      } else if (screen === 'register' || screen === 'signin') {
+        appBack.hidden = false;
+        appBack.href = '#/feed';
       } else {
         appBack.hidden = false;
         if (screen === 'experience') appBack.href = '#/feed';
@@ -263,13 +272,15 @@
       }
     }
 
-    const titles = { feed: 'Feed', experience: 'Experience', book: 'Book', vibe: 'Vibe' };
+    const titles = { feed: 'Feed', experience: 'Experience', book: 'Book', vibe: 'Vibe', register: 'Sign up', signin: 'Sign in' };
     if (appScreenTitle) appScreenTitle.textContent = titles[screen] || '';
 
     if (screen === 'feed') renderFeed();
     else if (screen === 'experience' && id) renderExperience(id);
     else if (screen === 'book' && id) renderBooking(id);
     else if (screen === 'vibe') renderVibe();
+    else if (screen === 'register') initRegister();
+    else if (screen === 'signin') initSignIn();
   }
 
   function applyRoute() {
@@ -278,6 +289,8 @@
       if (r.screen === 'experience' && r.id) showApp('experience', r.id);
       else if (r.screen === 'book' && r.id) showApp('book', r.id);
       else if (r.screen === 'vibe') showApp('vibe');
+      else if (r.screen === 'register') showApp('register');
+      else if (r.screen === 'signin') showApp('signin');
       else showApp('feed');
     } else {
       showMarketing();
@@ -386,4 +399,41 @@
       this.classList.add('active');
     });
   });
+
+  // ——— Register form ———
+  function initRegister() {
+    const form = document.getElementById('register-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = document.getElementById('reg-name').value;
+      alert('Prototype: Account created for "' + name + '". In the real app this would create your account and redirect to the feed.');
+      window.location.hash = '#/feed';
+    });
+    // Social buttons
+    document.getElementById('btn-google')?.addEventListener('click', function () {
+      alert('Prototype: Google sign-up. In the real app this would open OAuth.');
+    });
+    document.getElementById('btn-apple')?.addEventListener('click', function () {
+      alert('Prototype: Apple sign-up. In the real app this would open OAuth.');
+    });
+  }
+
+  // ——— Sign in form ———
+  function initSignIn() {
+    const form = document.getElementById('signin-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      alert('Prototype: Signed in. In the real app this would authenticate and redirect to the feed.');
+      window.location.hash = '#/feed';
+    });
+    // Social buttons
+    document.getElementById('btn-google-signin')?.addEventListener('click', function () {
+      alert('Prototype: Google sign-in. In the real app this would open OAuth.');
+    });
+    document.getElementById('btn-apple-signin')?.addEventListener('click', function () {
+      alert('Prototype: Apple sign-in. In the real app this would open OAuth.');
+    });
+  }
 })();

@@ -28,7 +28,8 @@
       <ul class="nav-list">
         <li><a href="#how-it-works">How it works</a></li>
         <li><a href="#about">About</a></li>
-        <li><a href="#sign-in">Sign in</a></li>
+        <li><a href="#/signin">Sign in</a></li>
+        <li><a href="#/register">Sign up</a></li>
         <li><a href="#/feed" class="nav-cta">Get the app</a></li>
       </ul>
     </nav>
@@ -41,7 +42,7 @@
       <div class="hero-content">
         <h1 id="hero-heading" class="hero-headline">Life Swap for Gen Z Travelers</h1>
         <p class="hero-subline">Swap lives with someone across the world. Live like a local, not a tourist.</p>
-        <a href="#/feed" class="btn btn-primary btn-hero">Get started</a>
+        <a href="#/register" class="btn btn-primary btn-hero">Get started</a>
       </div>
     </section>
 
@@ -101,7 +102,7 @@
     <!-- 3.6 CTA block -->
     <section id="get-app" class="cta-block section" aria-labelledby="cta-heading">
       <h2 id="cta-heading" class="cta-heading">Start your first life swap today.</h2>
-      <a href="#/feed" class="btn btn-primary btn-light">Join ROVE</a>
+      <a href="#/register" class="btn btn-primary btn-light">Join ROVE</a>
     </section>
 
     <!-- 3.7 Footer -->
@@ -174,6 +175,95 @@
             <div class="vibe-interests" id="vibe-interests"></div>
           </div>
           <a href="#/feed" class="btn btn-primary btn-block">Continue to feed</a>
+        </div>
+      </div>
+      <div id="screen-register" class="app-screen" hidden>
+        <div class="register-page">
+          <div class="auth-hero" aria-hidden="true"></div>
+          <div class="auth-card">
+            <h1 class="register-title">Join ROVE</h1>
+            <p class="register-subtitle">Start swapping lives with Gen Z travelers</p>
+            <form class="register-form" id="register-form" novalidate>
+              <div class="form-field">
+                <label for="reg-name" class="form-label">Full name</label>
+                <input type="text" id="reg-name" name="name" class="form-input" placeholder="Alex Chen" required autocomplete="name">
+              </div>
+              <div class="form-field">
+                <label for="reg-email" class="form-label">Email</label>
+                <input type="email" id="reg-email" name="email" class="form-input" placeholder="alex@example.com" required autocomplete="email">
+              </div>
+              <div class="form-field">
+                <label for="reg-password" class="form-label">Password</label>
+                <input type="password" id="reg-password" name="password" class="form-input" placeholder="At least 8 characters" required autocomplete="new-password" minlength="8">
+                <span class="form-hint">8+ characters</span>
+              </div>
+              <div class="form-field">
+                <label for="reg-birthdate" class="form-label">Date of birth</label>
+                <input type="date" id="reg-birthdate" name="birthdate" class="form-input" required>
+                <span class="form-hint">Must be 18+</span>
+              </div>
+              <div class="form-field">
+                <label class="form-checkbox">
+                  <input type="checkbox" name="terms" required>
+                  <span>I agree to ROVE's <a href="#" class="form-link">Terms</a> and <a href="#" class="form-link">Privacy Policy</a></span>
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Create account</button>
+            </form>
+            <div class="register-divider">
+              <span>or</span>
+            </div>
+            <div class="register-social">
+              <button type="button" class="btn-social" id="btn-google">
+                <span class="btn-social-icon">G</span>
+                Continue with Google
+              </button>
+              <button type="button" class="btn-social" id="btn-apple">
+                <span class="btn-social-icon">🍎</span>
+                Continue with Apple
+              </button>
+            </div>
+            <p class="register-footer">
+              Already have an account? <a href="#/signin" class="form-link">Sign in</a>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="screen-signin" class="app-screen" hidden>
+        <div class="register-page">
+          <div class="auth-hero auth-hero-alt" aria-hidden="true"></div>
+          <div class="auth-card">
+            <h1 class="register-title">Welcome back</h1>
+            <p class="register-subtitle">Sign in to continue</p>
+            <form class="register-form" id="signin-form" novalidate>
+              <div class="form-field">
+                <label for="signin-email" class="form-label">Email</label>
+                <input type="email" id="signin-email" name="email" class="form-input" placeholder="alex@example.com" required autocomplete="email">
+              </div>
+              <div class="form-field">
+                <label for="signin-password" class="form-label">Password</label>
+                <input type="password" id="signin-password" name="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                <a href="#" class="form-link form-link-right">Forgot password?</a>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+            </form>
+            <div class="register-divider">
+              <span>or</span>
+            </div>
+            <div class="register-social">
+              <button type="button" class="btn-social" id="btn-google-signin">
+                <span class="btn-social-icon">G</span>
+                Continue with Google
+              </button>
+              <button type="button" class="btn-social" id="btn-apple-signin">
+                <span class="btn-social-icon">🍎</span>
+                Continue with Apple
+              </button>
+            </div>
+            <p class="register-footer">
+              Don't have an account? <a href="#/register" class="form-link">Sign up</a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
