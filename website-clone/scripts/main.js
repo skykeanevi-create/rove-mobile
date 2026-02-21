@@ -216,13 +216,50 @@
     }
   });
 
+  // ——— Auth state (simulated, session-scoped) ———
+  var authUser = null;
+  try {
+    var _stored = sessionStorage.getItem('rove_user');
+    if (_stored) authUser = JSON.parse(_stored);
+  } catch (e) {}
+
+  function login(user) {
+    authUser = user;
+    try { sessionStorage.setItem('rove_user', JSON.stringify(user)); } catch (e) {}
+    updateBottomNav();
+  }
+  function logout() {
+    authUser = null;
+    try { sessionStorage.removeItem('rove_user'); } catch (e) {}
+    updateBottomNav();
+    window.location.hash = '#/welcome';
+  }
+
+  function updateBottomNav() {
+    var navSignin = document.getElementById('nav-signin');
+    var navJoin = document.getElementById('nav-join');
+    var navProfile = document.getElementById('nav-profile');
+    var navBook = document.getElementById('nav-book');
+    if (authUser) {
+      if (navSignin) navSignin.hidden = true;
+      if (navJoin) navJoin.hidden = true;
+      if (navProfile) navProfile.hidden = false;
+      if (navBook) navBook.hidden = false;
+    } else {
+      if (navSignin) navSignin.hidden = false;
+      if (navJoin) navJoin.hidden = false;
+      if (navProfile) navProfile.hidden = true;
+      if (navBook) navBook.hidden = true;
+    }
+  }
+
   // ——— App: hash routing ———
-  const APP_ROUTES = ['feed', 'experience', 'book', 'vibe', 'register', 'signin'];
+  const APP_ROUTES = ['welcome', 'feed', 'experience', 'book', 'vibe', 'register', 'signin', 'profile'];
 
   function getRoute() {
-    const hash = (window.location.hash || '#/feed').slice(1);
-    const parts = hash.split('/').filter(Boolean);
-    return { screen: parts[0] || 'feed', id: parts[1] || null };
+    var hash = (window.location.hash || '').slice(1);
+    var parts = hash.split('/').filter(Boolean);
+    return { screen: parts[0] || '', id: parts[1] || null };
   }
 
   function isAppRoute() {
@@ -241,30 +278,45 @@
     if (appWrap) appWrap.hidden = false;
     document.body.classList.add('app-mode');
 
-    document.querySelectorAll('.app-screen').forEach(function (el) {
-      el.hidden = true;
-    });
+    // Auth gate: non-auth users hitting feed/vibe/profile go to welcome
+    var guestGated = ['feed', 'vibe', 'profile'];
+    if (!authUser && guestGated.indexOf(screen) !== -1) {
+      window.location.hash = '#/welcome';
+      return;
+    }
+
+    document.querySelectorAll('.app-screen').forEach(function (el) { el.hidden = true; });
     document.querySelectorAll('.app-nav-item').forEach(function (el) {
       el.classList.remove('active');
       if (el.getAttribute('data-screen') === screen) el.classList.add('active');
     });
 
-    const screenEl = document.getElementById('screen-' + screen);
+    var screenEl = document.getElementById('screen-' + screen);
     if (screenEl) screenEl.hidden = false;
 
-    // Hide/show bottom nav
-    const bottomNav = document.querySelector('.app-bottom-nav');
-    if (bottomNav) {
-      bottomNav.hidden = (screen === 'register' || screen === 'signin');
+    var isWelcome = screen === 'welcome';
+    var isAuth = screen === 'register' || screen === 'signin';
+    var isFullscreen = isWelcome || isAuth;
+
+    // Header: hide on welcome, go dark on auth
+    var appHeader = document.querySelector('.app-header');
+    if (appHeader) {
+      appHeader.hidden = isWelcome;
+      if (isAuth) appHeader.classList.add('app-header-dark');
+      else appHeader.classList.remove('app-header-dark');
     }
 
+    // Bottom nav: hide on welcome/auth screens
+    var bottomNav = document.getElementById('app-bottom-nav');
+    if (bottomNav) bottomNav.hidden = isFullscreen;
+
+    // Back button
     if (appBack) {
-      if (screen === 'feed' || screen === 'vibe') {
+      if (isWelcome || screen === 'feed' || screen === 'vibe' || screen === 'profile') {
         appBack.hidden = true;
-        appBack.href = '#';
-      } else if (screen === 'register' || screen === 'signin') {
+      } else if (isAuth) {
         appBack.hidden = false;
-        appBack.href = '#/feed';
+        appBack.href = '#/welcome';
       } else {
         appBack.hidden = false;
         if (screen === 'experience') appBack.href = '#/feed';
@@ -272,26 +324,36 @@
       }
     }
 
-    const titles = { feed: 'Feed', experience: 'Experience', book: 'Book', vibe: 'Vibe', register: 'Sign up', signin: 'Sign in' };
-    if (appScreenTitle) appScreenTitle.textContent = titles[screen] || '';
+    var titles = { welcome: '', feed: 'Feed', experience: 'Experience', book: 'Book', vibe: 'Vibe', register: 'Sign up', signin: 'Log in', profile: 'Profile' };
+    if (appScreenTitle) appScreenTitle.textContent = titles[screen] !== undefined ? titles[screen] : '';
 
-    if (screen === 'feed') renderFeed();
+    updateBottomNav();
+
+    // Logo link: go to feed if logged in, welcome if not
+    var logoLink = document.getElementById('app-logo-link');
+    if (logoLink) logoLink.href = authUser ? '#/feed' : '#/welcome';
+
+    if (screen === 'welcome') initWelcome();
+    else if (screen === 'feed') renderFeed();
     else if (screen === 'experience' && id) renderExperience(id);
     else if (screen === 'book' && id) renderBooking(id);
     else if (screen === 'vibe') renderVibe();
     else if (screen === 'register') initRegister();
     else if (screen === 'signin') initSignIn();
+    else if (screen === 'profile') renderProfile();
   }
 
   function applyRoute() {
-    const r = getRoute();
+    var r = getRoute();
+    if (!r.screen) {
+      // No hash — show marketing landing page
+      showMarketing();
+      return;
+    }
     if (isAppRoute()) {
       if (r.screen === 'experience' && r.id) showApp('experience', r.id);
       else if (r.screen === 'book' && r.id) showApp('book', r.id);
-      else if (r.screen === 'vibe') showApp('vibe');
-      else if (r.screen === 'register') showApp('register');
-      else if (r.screen === 'signin') showApp('signin');
-      else showApp('feed');
+      else showApp(r.screen, r.id);
     } else {
       showMarketing();
     }
@@ -299,6 +361,20 @@
 
   window.addEventListener('hashchange', applyRoute);
   applyRoute();
+
+  // ——— Welcome screen ———
+  var welcomeInitialized = false;
+  function initWelcome() {
+    if (welcomeInitialized) return;
+    welcomeInitialized = true;
+    var guestBtn = document.getElementById('btn-guest');
+    if (guestBtn) {
+      guestBtn.addEventListener('click', function () {
+        login({ name: 'Guest', email: '', isGuest: true });
+        window.location.hash = '#/feed';
+      });
+    }
+  }
 
   // ——— Render Feed ———
   function renderFeed() {
@@ -400,40 +476,303 @@
     });
   });
 
-  // ——— Register form ———
+  // ——— Profile screen ———
+  function renderProfile() {
+    var user = authUser || {};
+    var nameEl = document.getElementById('profile-name');
+    var emailEl = document.getElementById('profile-email');
+    var avatarEl = document.getElementById('profile-avatar');
+    if (nameEl) nameEl.textContent = user.isGuest ? 'Guest' : (user.name || 'Rover');
+    if (emailEl) emailEl.textContent = user.email || (user.isGuest ? 'Browsing as guest' : '');
+    if (avatarEl) avatarEl.textContent = user.isGuest ? 'G' : ((user.name || 'R')[0].toUpperCase());
+
+    var signoutBtn = document.getElementById('btn-signout');
+    if (signoutBtn && !signoutBtn._wired) {
+      signoutBtn._wired = true;
+      signoutBtn.addEventListener('click', function () { logout(); });
+    }
+    var editBtn = document.getElementById('btn-edit-profile');
+    if (editBtn && !editBtn._wired) {
+      editBtn._wired = true;
+      editBtn.addEventListener('click', function () { alert('Edit profile coming soon!'); });
+    }
+    var notifBtn = document.getElementById('btn-notifications');
+    if (notifBtn && !notifBtn._wired) {
+      notifBtn._wired = true;
+      notifBtn.addEventListener('click', function () { alert('Notifications coming soon!'); });
+    }
+  }
+
+  // ——— Register form (dark theme, Phase 1–2) ———
+  var registerInitialized = false;
   function initRegister() {
     const form = document.getElementById('register-form');
     if (!form) return;
+    if (registerInitialized) return;
+    registerInitialized = true;
+
+    var first = document.getElementById('reg-first');
+    var last = document.getElementById('reg-last');
+    var email = document.getElementById('reg-email');
+    var phone = document.getElementById('reg-phone');
+    var password = document.getElementById('reg-password');
+    var confirm = document.getElementById('reg-confirm');
+    var terms = document.getElementById('reg-terms');
+    var submitBtn = document.getElementById('reg-submit');
+    var formError = document.getElementById('reg-form-error');
+    var dismissError = document.getElementById('reg-dismiss-error');
+    var passwordToggle = document.getElementById('reg-password-toggle');
+    var confirmToggle = document.getElementById('reg-confirm-toggle');
+    var confirmMatch = document.getElementById('reg-confirm-match');
+    var strengthEl = document.getElementById('reg-password-strength');
+
+    var touched = {};
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    function hasNumber(s) { return /\d/.test(s); }
+    function hasLetter(s) { return /[a-zA-Z]/.test(s); }
+
+    function setError(input, message) {
+      var id = input.id + '-err';
+      var errEl = document.getElementById(id);
+      if (errEl) errEl.textContent = message;
+      input.setAttribute('aria-invalid', 'true');
+      input.classList.add('is-error');
+      input.classList.remove('is-valid');
+    }
+    function clearError(input) {
+      var id = input.id + '-err';
+      var errEl = document.getElementById(id);
+      if (errEl) errEl.textContent = '';
+      input.setAttribute('aria-invalid', 'false');
+      input.classList.remove('is-error');
+    }
+    function setValid(input) {
+      clearError(input);
+      input.classList.add('is-valid');
+    }
+
+    function validateFirst() {
+      var v = first.value.trim();
+      if (!v) { setError(first, 'First name is required'); return false; }
+      setValid(first); return true;
+    }
+    function validateLast() {
+      var v = last.value.trim();
+      if (!v) { setError(last, 'Last name is required'); return false; }
+      setValid(last); return true;
+    }
+    function validateEmail() {
+      var v = email.value.trim();
+      if (!v) { setError(email, 'Email is required'); return false; }
+      if (!emailRe.test(v)) { setError(email, 'Email is invalid'); return false; }
+      setValid(email); return true;
+    }
+    function validatePassword() {
+      var v = password.value;
+      if (!v) { setError(password, 'Password is required'); return false; }
+      if (v.length < 8) { setError(password, 'Use at least 8 characters'); return false; }
+      if (!hasNumber(v) || !hasLetter(v)) { setError(password, 'Include a number and a letter'); return false; }
+      setValid(password); return true;
+    }
+    function validateConfirm() {
+      var v = confirm.value;
+      if (!v) { setError(confirm, 'Confirm your password'); return false; }
+      if (v !== password.value) { setError(confirm, 'Passwords don\'t match'); return false; }
+      setValid(confirm); return true;
+    }
+    function validateTerms() {
+      if (!terms.checked) {
+        var errEl = document.getElementById('reg-terms-err');
+        if (errEl) errEl.textContent = 'You must agree to continue';
+        terms.setAttribute('aria-invalid', 'true');
+        return false;
+      }
+      var errEl = document.getElementById('reg-terms-err');
+      if (errEl) errEl.textContent = '';
+      terms.setAttribute('aria-invalid', 'false');
+      return true;
+    }
+
+    function updateConfirmMatch() {
+      if (!confirm.value) { confirmMatch.textContent = ''; return; }
+      if (confirm.value === password.value) {
+        confirmMatch.textContent = 'Passwords match';
+        clearError(confirm);
+        confirm.classList.add('is-valid');
+      } else {
+        confirmMatch.textContent = '';
+        if (touched['reg-confirm']) setError(confirm, 'Passwords don\'t match');
+      }
+    }
+    function updateStrength() {
+      var v = password.value;
+      if (!v) { strengthEl.textContent = ''; return; }
+      var hasNum = hasNumber(v), hasLet = hasLetter(v), len = v.length;
+      var strong = len >= 10 && hasNum && hasLet;
+      var fair = len >= 8 && (hasNum || hasLet);
+      strengthEl.textContent = strong ? 'Strong' : fair ? 'Fair' : 'Weak';
+    }
+
+    [first, last, email, password, confirm].forEach(function (input) {
+      input.addEventListener('blur', function () {
+        touched[input.id] = true;
+        if (input === first) validateFirst();
+        else if (input === last) validateLast();
+        else if (input === email) validateEmail();
+        else if (input === password) { validatePassword(); updateStrength(); }
+        else if (input === confirm) { updateConfirmMatch(); validateConfirm(); }
+      });
+    });
+    password.addEventListener('input', function () { updateStrength(); updateConfirmMatch(); });
+    confirm.addEventListener('input', updateConfirmMatch);
+
+    if (passwordToggle) {
+      passwordToggle.addEventListener('click', function () {
+        var isPass = password.type === 'password';
+        password.type = isPass ? 'text' : 'password';
+        passwordToggle.setAttribute('aria-label', isPass ? 'Hide password' : 'Show password');
+      });
+    }
+    if (confirmToggle) {
+      confirmToggle.addEventListener('click', function () {
+        var isPass = confirm.type === 'password';
+        confirm.type = isPass ? 'text' : 'password';
+        confirmToggle.setAttribute('aria-label', isPass ? 'Hide password' : 'Show password');
+      });
+    }
+
+    if (dismissError && formError) {
+      dismissError.addEventListener('click', function () { formError.hidden = true; });
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var name = document.getElementById('reg-name').value;
-      alert('Prototype: Account created for "' + name + '". In the real app this would create your account and redirect to the feed.');
+      touched = { 'reg-first': true, 'reg-last': true, 'reg-email': true, 'reg-password': true, 'reg-confirm': true };
+      var ok = validateFirst() && validateLast() && validateEmail() && validatePassword() && validateConfirm() && validateTerms();
+      if (!ok) {
+        var firstErr = form.querySelector('.form-error');
+        if (firstErr && firstErr.textContent) form.querySelector('.form-input.is-error')?.focus();
+        return;
+      }
+      formError.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.classList.add('is-loading');
+      setTimeout(function () {
+        if (Math.random() > 0.85) {
+          formError.hidden = false;
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('is-loading');
+          return;
+        }
+        var userName = (first.value.trim() + ' ' + last.value.trim()).trim();
+        login({ name: userName || 'Rover', email: email.value.trim(), isGuest: false });
+        window.location.hash = '#/feed';
+      }, 1200);
+    });
+
+    document.getElementById('btn-google')?.addEventListener('click', function () {
+      login({ name: 'Google User', email: 'user@gmail.com', isGuest: false });
       window.location.hash = '#/feed';
     });
-    // Social buttons
-    document.getElementById('btn-google')?.addEventListener('click', function () {
-      alert('Prototype: Google sign-up. In the real app this would open OAuth.');
+    document.getElementById('btn-github')?.addEventListener('click', function () {
+      login({ name: 'GitHub User', email: 'user@github.com', isGuest: false });
+      window.location.hash = '#/feed';
     });
     document.getElementById('btn-apple')?.addEventListener('click', function () {
-      alert('Prototype: Apple sign-up. In the real app this would open OAuth.');
+      login({ name: 'Apple User', email: 'user@icloud.com', isGuest: false });
+      window.location.hash = '#/feed';
     });
   }
 
-  // ——— Sign in form ———
+  // ——— Sign in form (dark theme, validation + toggle + loading) ———
+  var signinInitialized = false;
   function initSignIn() {
-    const form = document.getElementById('signin-form');
+    var form = document.getElementById('signin-form');
     if (!form) return;
+    if (signinInitialized) return;
+    signinInitialized = true;
+
+    var emailInput = document.getElementById('signin-email');
+    var passwordInput = document.getElementById('signin-password');
+    var submitBtn = document.getElementById('signin-submit');
+    var formError = document.getElementById('signin-form-error');
+    var dismissError = document.getElementById('signin-dismiss-error');
+    var pwToggle = document.getElementById('signin-password-toggle');
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var touched = {};
+
+    function setErr(input, msg) {
+      var errEl = document.getElementById(input.id + '-err');
+      if (errEl) errEl.textContent = msg;
+      input.setAttribute('aria-invalid', 'true');
+      input.classList.add('is-error');
+      input.classList.remove('is-valid');
+    }
+    function clearErr(input) {
+      var errEl = document.getElementById(input.id + '-err');
+      if (errEl) errEl.textContent = '';
+      input.setAttribute('aria-invalid', 'false');
+      input.classList.remove('is-error');
+    }
+    function setOk(input) { clearErr(input); input.classList.add('is-valid'); }
+
+    function valEmail() {
+      var v = emailInput.value.trim();
+      if (!v) { setErr(emailInput, 'Email is required'); return false; }
+      if (!emailRe.test(v)) { setErr(emailInput, 'Enter a valid email'); return false; }
+      setOk(emailInput); return true;
+    }
+    function valPassword() {
+      var v = passwordInput.value;
+      if (!v) { setErr(passwordInput, 'Password is required'); return false; }
+      setOk(passwordInput); return true;
+    }
+
+    emailInput.addEventListener('blur', function () { touched['signin-email'] = true; valEmail(); });
+    passwordInput.addEventListener('blur', function () { touched['signin-password'] = true; valPassword(); });
+
+    if (pwToggle) {
+      pwToggle.addEventListener('click', function () {
+        var isPass = passwordInput.type === 'password';
+        passwordInput.type = isPass ? 'text' : 'password';
+        pwToggle.setAttribute('aria-label', isPass ? 'Hide password' : 'Show password');
+      });
+    }
+    if (dismissError && formError) {
+      dismissError.addEventListener('click', function () { formError.hidden = true; });
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      alert('Prototype: Signed in. In the real app this would authenticate and redirect to the feed.');
+      touched = { 'signin-email': true, 'signin-password': true };
+      var ok = valEmail() && valPassword();
+      if (!ok) { emailInput.classList.contains('is-error') ? emailInput.focus() : passwordInput.focus(); return; }
+      if (formError) formError.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.classList.add('is-loading');
+      setTimeout(function () {
+        if (Math.random() > 0.9) {
+          if (formError) formError.hidden = false;
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('is-loading');
+          return;
+        }
+        login({ name: emailInput.value.split('@')[0] || 'Rover', email: emailInput.value.trim(), isGuest: false });
+        window.location.hash = '#/feed';
+      }, 1000);
+    });
+
+    document.getElementById('btn-google-signin')?.addEventListener('click', function () {
+      login({ name: 'Google User', email: 'user@gmail.com', isGuest: false });
       window.location.hash = '#/feed';
     });
-    // Social buttons
-    document.getElementById('btn-google-signin')?.addEventListener('click', function () {
-      alert('Prototype: Google sign-in. In the real app this would open OAuth.');
+    document.getElementById('btn-github-signin')?.addEventListener('click', function () {
+      login({ name: 'GitHub User', email: 'user@github.com', isGuest: false });
+      window.location.hash = '#/feed';
     });
     document.getElementById('btn-apple-signin')?.addEventListener('click', function () {
-      alert('Prototype: Apple sign-in. In the real app this would open OAuth.');
+      login({ name: 'Apple User', email: 'user@icloud.com', isGuest: false });
+      window.location.hash = '#/feed';
     });
   }
 })();
